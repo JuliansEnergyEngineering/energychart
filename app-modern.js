@@ -1,7 +1,7 @@
 // ===== CONSTANTS =====
-const API_BASE_URL = 'https://api.energy-charts.info';
+const API_BASE_URL = 'https://corsproxy.io/?https://api.energy-charts.info';
 const BZN = 'CH';
-const EUR_TO_CHF = 0.95;
+let EUR_TO_CHF = 0.95; // Fallback-Wert
 const UPDATE_INTERVAL = 15 * 60 * 1000; // 15 Minuten
 
 // ===== STATE =====
@@ -10,20 +10,60 @@ let currentHour = new Date().getHours();
 let sparklineChart = null;
 let mainChart = null;
 
+// ===== CONVERSION FUNCTIONS =====
+function convertToChfKwh(eurMwh) {
+    return (eurMwh * EUR_TO_CHF / 1000);
+}
+
+function formatChfKwh(eurMwh, decimals = 3) {
+    return convertToChfKwh(eurMwh).toFixed(decimals);
+}
+
+// ===== EXCHANGE RATE =====
+async function fetchExchangeRate() {
+    try {
+        const response = await fetch('https://api.frankfurter.app/latest?from=EUR&to=CHF');
+        
+        if (!response.ok) {
+            throw new Error('Exchange rate fetch failed');
+        }
+        
+        const data = await response.json();
+        EUR_TO_CHF = data.rates.CHF;
+        
+        console.log(`✅ Wechselkurs aktualisiert: 1 EUR = ${EUR_TO_CHF.toFixed(4)} CHF`);
+        return EUR_TO_CHF;
+        
+    } catch (error) {
+        console.warn('⚠️ Wechselkurs-API Fehler, nutze Fallback:', EUR_TO_CHF);
+        return EUR_TO_CHF;
+    }
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
 
 async function initializeApp() {
+    showLoading(true);
+    
     // Event Listeners
     document.getElementById('refresh-btn')?.addEventListener('click', () => loadData(true));
+    
+    // Wechselkurs laden
+    await fetchExchangeRate();
     
     // Initial Load
     await loadData();
     
-    // Auto-refresh
-    setInterval(() => loadData(), UPDATE_INTERVAL);
+    showLoading(false);
+    
+    // Auto-refresh (inkl. Wechselkurs)
+    setInterval(async () => {
+        await fetchExchangeRate();
+        await loadData();
+    }, UPDATE_INTERVAL);
 }
 
 // ===== DATA LOADING =====
@@ -102,9 +142,8 @@ function updateUI(data) {
     const trend = currentPrice.price > previousPrice ? 'up' : 'down';
     const trendPercent = ((currentPrice.price - previousPrice) / previousPrice * 100).toFixed(1);
     
-    // UI Updates
-    updateElement('current-price', currentPrice.price.toFixed(2));
-    updateElement('price-chf', `${(currentPrice.price * EUR_TO_CHF / 1000).toFixed(4)} CHF/kWh`);
+    // UI Updates - alle in CHF/kWh
+    updateElement('current-price', formatChfKwh(currentPrice.price));
     updateElement('current-time', formatTime(currentPrice.date));
     
     // Trend
@@ -117,13 +156,13 @@ function updateUI(data) {
         );
     }
     
-    updateElement('min-price', minPrice.toFixed(2));
+    updateElement('min-price', formatChfKwh(minPrice));
     updateElement('min-time', formatTime(data[minIndex].date));
     
-    updateElement('max-price', maxPrice.toFixed(2));
+    updateElement('max-price', formatChfKwh(maxPrice));
     updateElement('max-time', formatTime(data[maxIndex].date));
     
-    updateElement('avg-price', avgPrice.toFixed(2));
+    updateElement('avg-price', formatChfKwh(avgPrice));
 }
 
 function updateElement(id, text) {
@@ -169,14 +208,14 @@ function updateTimeline(data) {
         
         item.innerHTML = `
             <div class="timeline-time">${hour}:00</div>
-            <div class="timeline-price">${price.toFixed(1)}</div>
-            <div class="timeline-unit">€/MWh</div>
+            <div class="timeline-price">${formatChfKwh(price)}</div>
+            <div class="timeline-unit">CHF/kWh</div>
         `;
         
         item.addEventListener('click', () => {
             document.querySelectorAll('.timeline-item').forEach(el => el.classList.remove('active'));
             item.classList.add('active');
-            updateElement('current-price', price.toFixed(2));
+            updateElement('current-price', formatChfKwh(price));
             updateElement('current-time', `${hour}:00`);
         });
         
@@ -274,7 +313,7 @@ function updateMainChart(data) {
     
     const width = rect.width;
     const height = rect.height;
-    const padding = 40;
+    const padding = 50; // Mehr Platz für CHF Labels
     const chartWidth = width - 2 * padding;
     const chartHeight = height - 2 * padding;
     
@@ -375,7 +414,7 @@ function updateMainChart(data) {
     
     // Labels
     ctx.fillStyle = '#8B93B0';
-    ctx.font = '12px "Space Mono", monospace';
+    ctx.font = '11px "Space Mono", monospace';
     ctx.textAlign = 'center';
     
     // Time labels (every 4 hours)
@@ -385,11 +424,18 @@ function updateMainChart(data) {
         ctx.fillText(`${hour}:00`, x, height - padding + 20);
     }
     
-    // Price labels
+    // Price labels (in CHF/kWh)
     ctx.textAlign = 'right';
-    ctx.fillText(`€${maxPrice.toFixed(0)}`, padding - 10, padding + 5);
-    ctx.fillText(`€${minPrice.toFixed(0)}`, padding - 10, height - padding + 5);
-    ctx.fillText(`€${avgPrice.toFixed(0)}`, padding - 10, avgY + 5);
+    ctx.font = '10px "Space Mono", monospace';
+    ctx.fillText(formatChfKwh(maxPrice, 3), padding - 10, padding + 5);
+    ctx.fillText(formatChfKwh(minPrice, 3), padding - 10, height - padding + 5);
+    ctx.fillText(formatChfKwh(avgPrice, 3), padding - 10, avgY + 5);
+    
+    // CHF/kWh Label
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#5A6178';
+    ctx.font = '10px "Space Mono", monospace';
+    ctx.fillText('CHF/kWh', 10, padding - 10);
 }
 
 // ===== UTILITIES =====
