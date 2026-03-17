@@ -1,5 +1,5 @@
 // ===== CONSTANTS =====
-const API_BASE_URL = 'https://energychart.julian-wymann.workers.dev/';
+const API_BASE_URL = 'https://corsproxy.io/?https://api.energy-charts.info';
 const BZN = 'CH';
 let EUR_TO_CHF = 0.95;
 const UPDATE_INTERVAL = 15 * 60 * 1000;
