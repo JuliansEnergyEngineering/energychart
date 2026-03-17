@@ -10,53 +10,42 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Background Elements -->
     <div class="bg-gradient"></div>
     <div class="bg-grid"></div>
     
     <div class="app-container">
-        <!-- Header -->
         <header class="header">
             <div class="header-top">
                 <div class="logo">
                     <span class="logo-icon">⚡</span>
                     <span class="logo-text">Energie</span>
                 </div>
-                <!--button class="settings-btn" aria-label="Einstellungen">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M12 1v6m0 6v6m8.66-12.66l-5.66 5.66m0 0l-5.66 5.66m5.66-5.66l5.66 5.66m-16.66 0l5.66-5.66"></path>
-                    </svg>
-                </button>-->
             </div>
             <div class="header-subtitle">
                 <span class="pulse-dot"></span>
-                Live Strompreise
+                Live Strompreise Schweiz
             </div>
         </header>
 
-        <!-- Main Price Card -->
+        <!-- Main Price Card (OHNE Mini-Chart) -->
         <div class="price-hero">
             <div class="price-label">Aktueller Preis</div>
             <div class="price-main">
-                <span class="currency">€</span>
-                <span class="price-value" id="current-price">85.50</span>
-                <div class="price-trend up">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 4l6 6H2l6-6z"/>
-                    </svg>
-                    <span>+12%</span>
+                <span class="price-value" id="current-price">—</span>
+                <div class="price-right">
+                    <span class="price-unit">Rp./kWh</span>
+                    <div class="price-trend up" id="price-trend">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                            <path id="trend-arrow" d="M8 4l6 6H2l6-6z"/>
+                        </svg>
+                        <span id="trend-value">—</span>
+                    </div>
                 </div>
             </div>
             <div class="price-subtext">
-                <span id="price-chf">0.0812 CHF/kWh</span>
-                <span class="separator">•</span>
-                <span id="current-time">14:00</span>
-            </div>
-            
-            <!-- Mini Chart -->
-            <div class="mini-chart">
-                <canvas id="sparkline"></canvas>
+                <span id="current-time">—</span>
+                <span class="separator">·</span>
+                <span>Swissix Index</span>
             </div>
         </div>
 
@@ -66,8 +55,8 @@
                 <div class="stat-icon green">↓</div>
                 <div class="stat-content">
                     <div class="stat-label">Minimum</div>
-                    <div class="stat-value" id="min-price">65.20</div>
-                    <div class="stat-time" id="min-time">03:00</div>
+                    <div class="stat-value" id="min-price">—</div>
+                    <div class="stat-meta" id="min-time">—</div>
                 </div>
             </div>
             
@@ -75,45 +64,39 @@
                 <div class="stat-icon red">↑</div>
                 <div class="stat-content">
                     <div class="stat-label">Maximum</div>
-                    <div class="stat-value" id="max-price">125.80</div>
-                    <div class="stat-time" id="max-time">17:00</div>
+                    <div class="stat-value" id="max-price">—</div>
+                    <div class="stat-meta" id="max-time">—</div>
                 </div>
             </div>
             
             <div class="stat-card span-2">
-                <div class="stat-icon blue">≈</div>
+                <div class="stat-icon blue">⌀</div>
                 <div class="stat-content">
-                    <div class="stat-label">Durchschnitt (Heute)</div>
-                    <div class="stat-value" id="avg-price">92.30</div>
-                    <div class="stat-time">Basis: 24h</div>
+                    <div class="stat-label">Ø Durchschnitt</div>
+                    <div class="stat-value" id="avg-price">—</div>
+                    <div class="stat-meta">Rp./kWh · Basis: 24h</div>
                 </div>
             </div>
         </div>
 
-        <!-- Timeline -->
+        <!-- Heute/Morgen Tabs -->
         <div class="section">
             <div class="section-header">
-                <h2>Heute</h2>
-                <button class="view-toggle">
-                    <span class="active">Tag</span>
-                    <span>Woche</span>
-                </button>
+                <h2>Verlauf</h2>
+                <div class="view-toggle">
+                    <span class="active" id="tab-today" onclick="switchToToday()">Heute</span>
+                    <span id="tab-tomorrow" onclick="switchToTomorrow()">Morgen</span>
+                </div>
             </div>
             
-            <div class="timeline" id="timeline">
-                <!-- Wird dynamisch gefüllt -->
-            </div>
+            <div class="timeline" id="timeline"></div>
         </div>
 
         <!-- Chart Section -->
         <div class="section">
             <div class="section-header">
-                <h2>24h Verlauf</h2>
+                <h2 id="chart-title">24h Chart - Heute</h2>
                 <div class="chart-legend">
-                    <span class="legend-item">
-                        <span class="legend-dot current"></span>
-                        Aktuell
-                    </span>
                     <span class="legend-item">
                         <span class="legend-dot cheap"></span>
                         Günstig
@@ -134,48 +117,43 @@
         <div class="insights-card">
             <div class="insight-icon">💡</div>
             <div class="insight-content">
-                <h3>Beste Zeit zum Laden</h3>
-                <p>Die günstigsten Preise sind heute zwischen <strong>02:00-05:00 Uhr</strong>. 
-                   Spare bis zu <strong>47%</strong> gegenüber Spitzenzeiten.</p>
+                <h3 id="insight-title">Beste Zeit zum Laden</h3>
+                <p id="insight-text">Daten werden geladen...</p>
             </div>
         </div>
 
         <!-- Footer Actions -->
         <div class="actions">
             <button class="action-btn primary" id="refresh-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                 </svg>
                 Aktualisieren
             </button>
-            <button class="action-btn secondary">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                </svg>
-                Alarm setzen
-            </button>
-        </div>
+         </div>
 
         <!-- Footer Info -->
         <div class="footer-info">
-            <div class="info-source">
+            <div class="info-row">
                 <span>Datenquelle</span>
-                <span class="info-value">Energy-Charts (Fraunhofer ISE)</span>
+                <span class="info-value">Energy-Charts · Fraunhofer ISE</span>
             </div>
-            <div class="info-update">
+            <div class="info-row">
                 <span>Letztes Update</span>
-                <span class="info-value" id="last-update">--:--</span>
+                <span class="info-value" id="last-update">—</span>
             </div>
+        </div>
+
+        <div class="made-with">
+            Made with ☕ ❤️ &amp; Claude
         </div>
     </div>
 
-    <!-- Loading -->
     <div id="loading" class="loading hidden">
         <div class="loading-spinner"></div>
         <p>Lädt Daten...</p>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="toast hidden"></div>
 
     <script src="app-modern.js"></script>
